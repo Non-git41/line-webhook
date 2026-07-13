@@ -149,7 +149,7 @@ async function replyFlex(replyToken) {
             action: {
               type: 'uri',
               label: 'ดูรายละเอียดเพิ่มเติม',
-              uri: 'https://msd.coopmsds.com', // เปลี่ยนเป็น URL ของสหกรณ์ได้
+              uri: 'https://www.coopmsds.com', // เปลี่ยนเป็น URL ของสหกรณ์ได้
             },
           },
         ],
