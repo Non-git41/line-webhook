@@ -11,10 +11,14 @@ async function replyServiceMenu(replyToken) {
 
   const flexContents = {
     type: 'bubble',
+    styles: {
+      header: { backgroundColor: '#105abe' },
+      body:   { backgroundColor: '#fff0f7' },
+      footer: { backgroundColor: '#fff0f7' },
+    },
     header: {
       type: 'box',
       layout: 'vertical',
-      backgroundColor: '#105abe',
       paddingAll: '16px',
       contents: [
         {
@@ -31,8 +35,7 @@ async function replyServiceMenu(replyToken) {
       type: 'box',
       layout: 'vertical',
       spacing: 'sm',
-      backgroundColor: '#ffffff',
-      paddingAll: '12px',
+      paddingAll: '14px',
       contents: buttons.map(btn => ({
         type: 'box',
         layout: 'horizontal',
@@ -67,6 +70,20 @@ async function replyServiceMenu(replyToken) {
           },
         ],
       })),
+    },
+    footer: {
+      type: 'box',
+      layout: 'vertical',
+      paddingAll: '10px',
+      contents: [
+        {
+          type: 'text',
+          text: 'สหกรณ์ออมทรัพย์ กรมพัฒนาสังคม',
+          color: '#d71678',
+          size: 'xs',
+          align: 'center',
+        },
+      ],
     },
   };
 
