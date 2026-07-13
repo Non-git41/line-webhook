@@ -52,7 +52,7 @@ app.post('/webhook', verifySignature, async (req, res) => {
 async function handleEvent(event) {
   // ผู้ใช้ส่งข้อความมา
   if (event.type === 'message' && event.message.type === 'text') {
-    const text = event.message.text.trim;
+    const text = event.message.text.trim();
 
     if (text === 'บริการ') {
       // เพิ่มบรรทัดนี้ เรียกใช้ฟังก์ชั้นจากบริการ
