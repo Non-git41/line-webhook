@@ -67,17 +67,26 @@ async function handleEvent(event) {
   // ผู้ใช้ส่งข้อความมา
   if (event.type === 'message' && event.message.type === 'text') {
     const text = event.message.text.trim();
+    const lineUserId = event.source.userId; // ดึง userId จาก LINE
 
     if (text === 'บริการ') {
       // เพิ่มบรรทัดนี้ เรียกใช้ฟังก์ชั้นจากบริการ
       await replyServiceMenu(event.replyToken);
+
+      } else if (text === 'ข้อมูลของฉัน') {
+      await replyUserInfo(event.replyToken, lineUserId);
+
+      } else if (text === 'เชื่อมบัญชี') {
+      await replyLiffLink(event.replyToken);
+
+
     } else {
     await replyMessage(event.replyToken, `รับข้อความแล้ว: ${text}`);
   }
   }
   // ผู้ใช้กดเพิ่มเพื่อน
   if (event.type === 'follow') {
-    await replyMessage(event.replyToken, 'ขอบคุณที่เพิ่มเพื่อนครับ 🙏');
+    await replyMessage(event.replyToken, 'ยินดีต้อนรับครับ 🙏\nพิมพ์ "เชื่อมบัญชี" เพื่อผูกบัญชีสหกรณ์กับ LINE');
   }
 }
 
@@ -193,7 +202,179 @@ function authMiddleware(req, res, next) {
     return res.status(401).json({ message: 'Token ไม่ถูกต้องหรือหมดอายุ' });
   }
 }
+// ── ส่งลิงก์ LIFF ให้ไป login ──────────────────────
+async function replyLiffLink(replyToken) {
+  const flex = {
+    type: 'flex',
+    altText: 'เชื่อมบัญชีสหกรณ์',
+    contents: {
+      type: 'bubble',
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'md',
+        contents: [
+          {
+            type: 'text',
+            text: '🔐 เชื่อมบัญชีสหกรณ์',
+            weight: 'bold',
+            size: 'lg',
+            color: '#105abe',
+          },
+          {
+            type: 'text',
+            text: 'กดปุ่มด้านล่างเพื่อเข้าสู่ระบบและผูกบัญชีสหกรณ์กับ LINE ของคุณ',
+            wrap: true,
+            color: '#666666',
+            size: 'sm',
+          },
+        ],
+      },
+      footer: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          {
+            type: 'button',
+            style: 'primary',
+            color: '#105abe',
+            action: {
+              type: 'uri',
+              label: 'เข้าสู่ระบบ',
+              uri: 'https://liff.line.me/2010712742-XW9bs8So',
+            },
+          },
+        ],
+      },
+    },
+  };
 
+  await axios.post(
+    'https://api.line.me/v2/bot/message/reply',
+    { replyToken, messages: [flex] },
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${CHANNEL_ACCESS_TOKEN}`,
+      },
+    }
+  );
+}
+
+// ── ดึงข้อมูลสมาชิกแสดงเป็น Flex Message ───────────
+async function replyUserInfo(replyToken, lineUserId) {
+  try {
+    // หา user จาก line_user_id
+    const [rows] = await db.query(
+      'SELECT * FROM users WHERE line_user_id = ?', [lineUserId]
+    );
+
+    // ยังไม่ได้เชื่อมบัญชี
+    if (rows.length === 0) {
+      await replyMessage(replyToken,
+        'ยังไม่ได้เชื่อมบัญชีครับ\nพิมพ์ "เชื่อมบัญชี" เพื่อผูกบัญชีสหกรณ์ก่อน'
+      );
+      return;
+    }
+
+    const user = rows[0];
+
+    // สร้าง Flex Message แบบ Receipt
+    const flex = {
+      type: 'flex',
+      altText: 'ข้อมูลสมาชิก',
+      contents: {
+        type: 'bubble',
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [
+            // หัวข้อ
+            {
+              type: 'text',
+              text: 'ข้อมูลสมาชิก',
+              weight: 'bold',
+              color: '#105abe',
+              size: 'sm',
+            },
+            {
+              type: 'text',
+              text: user.name,
+              weight: 'bold',
+              size: 'xxl',
+              margin: 'md',
+            },
+            {
+              type: 'separator',
+              margin: 'md',
+            },
+            // รายละเอียด
+            {
+              type: 'box',
+              layout: 'vertical',
+              margin: 'md',
+              spacing: 'sm',
+              contents: [
+                {
+                  type: 'box',
+                  layout: 'horizontal',
+                  contents: [
+                    { type: 'text', text: 'Username', color: '#555555', size: 'sm', flex: 1 },
+                    { type: 'text', text: user.username, color: '#111111', size: 'sm', flex: 2, align: 'end' },
+                  ],
+                },
+                {
+                  type: 'box',
+                  layout: 'horizontal',
+                  contents: [
+                    { type: 'text', text: 'สมัครเมื่อ', color: '#555555', size: 'sm', flex: 1 },
+                    {
+                      type: 'text',
+                      text: new Date(user.created_at).toLocaleDateString('th-TH'),
+                      color: '#111111',
+                      size: 'sm',
+                      flex: 2,
+                      align: 'end',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              type: 'separator',
+              margin: 'md',
+            },
+            // footer ข้อมูล
+            {
+              type: 'box',
+              layout: 'horizontal',
+              margin: 'md',
+              contents: [
+                { type: 'text', text: 'สถานะ', color: '#555555', size: 'sm', flex: 1 },
+                { type: 'text', text: 'สมาชิกปกติ', color: '#105abe', size: 'sm', flex: 2, align: 'end', weight: 'bold' },
+              ],
+            },
+          ],
+        },
+      },
+    };
+
+    await axios.post(
+      'https://api.line.me/v2/bot/message/reply',
+      { replyToken, messages: [flex] },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${CHANNEL_ACCESS_TOKEN}`,
+        },
+      }
+    );
+
+  } catch (err) {
+    console.error(err);
+    await replyMessage(replyToken, 'เกิดข้อผิดพลาดครับ');
+  }
+}
 // ── ตัวอย่าง route ที่ต้อง login ก่อนถึงเข้าได้ ────────
 app.get('/api/profile', authMiddleware, async (req, res) => {
   res.json({
@@ -238,6 +419,8 @@ app.post('/api/liff-login', async (req, res) => {
     if (!match) {
       return res.status(401).json({ message: 'รหัสผ่านไม่ถูกต้อง' });
     }
+
+    
 
     // ผูก LINE userId กับ account
     await db.query(
