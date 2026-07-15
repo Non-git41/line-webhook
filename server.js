@@ -70,7 +70,7 @@ async function handleEvent(event) {
 
     if (text === 'บริการ') {
       // เพิ่มบรรทัดนี้ เรียกใช้ฟังก์ชั้นจากบริการ
-      await replyServiceMenuMenu(event.replyToken);
+      await replyServiceMenu(event.replyToken);
     } else {
     await replyMessage(event.replyToken, `รับข้อความแล้ว: ${text}`);
   }
