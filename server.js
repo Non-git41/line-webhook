@@ -3,6 +3,7 @@ const express = require('express');
 const crypto = require('crypto');
 const axios = require('axios');
 
+
 const { replyServiceMenu } = require('./flexMessages');
 
 const app = express();
@@ -113,6 +114,7 @@ const db = mysql.createPool({
   user:     process.env.DB_USER,
   password: process.env.DB_PASS,
   database: process.env.DB_NAME,
+  ssl: { rejectUnauthorized: false }, // เพิ่มบรรทัดนี้
 });
 
 app.post('/api/register', async (req, res) => {
