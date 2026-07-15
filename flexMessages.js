@@ -78,7 +78,7 @@ async function replyServiceMenu(replyToken) {
       contents: [
         {
           type: 'text',
-          text: 'สหกรณ์ออมทรัพย์ กรมพัฒนาสังคม',
+          text: 'สหกรณ์ออมทรัพย์ กระทรวงการพัฒนาสังคมและความมั่นคงของมนุษย์ จำกัด',
           color: '#d71678',
           size: 'xs',
           align: 'center',
