@@ -345,8 +345,8 @@ async function replyUserInfo(replyToken, lineUserId) {
                   type: 'box',
                   layout: 'horizontal',
                   contents: [
-                    { type: 'text', text: 'Username', color: '#555555', size: 'sm', flex: 1 },
-                    { type: 'text', text: user.username, color: '#111111', size: 'sm', flex: 2, align: 'end' },
+                    { type: 'text', text: 'เลขสมาชิก', color: '#555555', size: 'sm', flex: 1 },
+                    { type: 'text', text: user.member_id, color: '#111111', size: 'sm', flex: 2, align: 'end' },
                   ],
                 },
                 {
