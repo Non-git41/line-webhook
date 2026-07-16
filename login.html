@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>เข้าสู่ระบบ</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Sarabun', sans-serif;
+      background: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .card {
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 400px;
+    }
+
+    h2 {
+      text-align: center;
+      color: #105abe;
+      margin-bottom: 8px;
+      font-size: 22px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #888;
+      font-size: 13px;
+      margin-bottom: 24px;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 4px;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 15px;
+      margin-bottom: 16px;
+      outline: none;
+    }
+
+    input:focus { border-color: #105abe; }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #105abe;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      font-family: 'Sarabun', sans-serif;
+    }
+
+    button:hover { background: #0d47a1; }
+
+    .hint {
+      text-align: center;
+      font-size: 12px;
+      color: #888;
+      margin-top: 12px;
+    }
+
+    .hint a {
+      color: #105abe;
+      text-decoration: none;
+    }
+
+    #message {
+      margin-top: 12px;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .error   { color: #e53935; }
+    .success { color: #2e7d32; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>🔐 เข้าสู่ระบบสหกรณ์</h2>
+    <p class="subtitle">เชื่อมบัญชีสหกรณ์กับ LINE ของคุณ</p>
+
+    <label>เลขสมาชิก</label>
+    <input type="text" id="member_id" placeholder="เช่น 00123">
+
+    <label>รหัสผ่าน</label>
+    <input type="password" id="password" placeholder="กรอกรหัสผ่าน 5 หลัก">
+
+    <button onclick="login()">เข้าสู่ระบบ</button>
+
+    <p class="hint">
+      ยังไม่มีรหัสผ่าน? 
+      <a href="/verify" target="_blank">กดยืนยันตัวตนที่นี่</a>
+    </p>
+
+    <div id="message"></div>
+  </div>
+
+  <script>
+    let lineUserId = null;
+
+    async function initLiff() {
+      await liff.init({ liffId: '2010712742-XW9bs8So' });
+
+      if (!liff.isLoggedIn()) {
+        liff.login();
+        return;
+      }
+
+      const profile = await liff.getProfile();
+      lineUserId = profile.userId;
+    }
+
+    async function login() {
+      const member_id = document.getElementById('member_id').value.trim();
+      const password  = document.getElementById('password').value.trim();
+      const msg       = document.getElementById('message');
+
+      if (!member_id || !password) {
+        msg.className   = 'error';
+        msg.textContent = 'กรุณากรอกข้อมูลให้ครบ';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/liff-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ member_id, password, lineUserId })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          msg.className   = 'success';
+          msg.textContent = `เชื่อมบัญชีสำเร็จ ✅ ยินดีต้อนรับ คุณ${data.name}`;
+          setTimeout(() => liff.closeWindow(), 1500);
+        } else {
+          msg.className   = 'error';
+          msg.textContent = data.message;
+        }
+
+      } catch (err) {
+        msg.className   = 'error';
+        msg.textContent = 'เชื่อมต่อ server ไม่ได้';
+      }
+    }
+
+    initLiff();
+  </script>
+
+</body>
+</html>

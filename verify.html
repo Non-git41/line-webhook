@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ยืนยันตัวตนสมาชิก</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Sarabun', sans-serif;
+      background: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .card {
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 400px;
+    }
+
+    h2 {
+      text-align: center;
+      color: #105abe;
+      margin-bottom: 8px;
+      font-size: 22px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #888;
+      font-size: 13px;
+      margin-bottom: 24px;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 4px;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 15px;
+      margin-bottom: 16px;
+      outline: none;
+    }
+
+    input:focus { border-color: #105abe; }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #105abe;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      font-family: 'Sarabun', sans-serif;
+    }
+
+    button:hover { background: #0d47a1; }
+
+    /* กล่องแสดงรหัสผ่าน */
+    .result-box {
+      display: none;
+      margin-top: 20px;
+      padding: 20px;
+      background: #f0f7ff;
+      border: 1px solid #105abe;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    .result-box .welcome {
+      font-size: 15px;
+      color: #333;
+      margin-bottom: 12px;
+    }
+
+    .result-box .label {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 4px;
+    }
+
+    .result-box .password {
+      font-size: 28px;
+      font-weight: bold;
+      color: #105abe;
+      letter-spacing: 4px;
+      margin-bottom: 6px;
+    }
+
+    .result-box .hint {
+      font-size: 12px;
+      color: #d71678;
+      margin-bottom: 16px;
+    }
+
+    .btn-login {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      background: #d71678;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      cursor: pointer;
+      font-family: 'Sarabun', sans-serif;
+      text-decoration: none;
+      text-align: center;
+    }
+
+    .btn-login:hover { background: #b01060; }
+
+    #message {
+      margin-top: 12px;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .error   { color: #e53935; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>🔍 ยืนยันตัวตนสมาชิก</h2>
+    <p class="subtitle">กรอกข้อมูลเพื่อรับรหัสผ่านเข้าระบบ</p>
+
+    <label>เลขสมาชิก</label>
+    <input type="text" id="member_id" placeholder="เช่น 00123">
+
+    <label>เลขบัตรประชาชน</label>
+    <input type="text" id="national_id" placeholder="กรอกเลข 13 หลัก" maxlength="13">
+
+    <button onclick="verify()">ยืนยันตัวตน</button>
+
+    <div id="message"></div>
+
+    <!-- กล่องแสดงรหัสผ่าน -->
+    <div class="result-box" id="result-box">
+      <p class="welcome" id="welcome-text"></p>
+      <p class="label">รหัสผ่านเข้าระบบสมาชิกของคุณคือ</p>
+      <p class="password" id="password-text"></p>
+      <p class="hint">⚠️ กรุณาจดรหัสผ่านนี้ไว้ก่อนกดเข้าสู่ระบบ</p>
+      <a class="btn-login" href="/login">เข้าสู่ระบบ →</a>
+    </div>
+  </div>
+
+  <script>
+    async function verify() {
+      const member_id   = document.getElementById('member_id').value.trim();
+      const national_id = document.getElementById('national_id').value.trim();
+      const msg         = document.getElementById('message');
+
+      if (!member_id || !national_id) {
+        msg.className   = 'error';
+        msg.textContent = 'กรุณากรอกข้อมูลให้ครบ';
+        return;
+      }
+
+      if (national_id.length !== 13) {
+        msg.className   = 'error';
+        msg.textContent = 'เลขบัตรประชาชนต้องมี 13 หลัก';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/verify-member', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ member_id, national_id })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          msg.textContent = '';
+
+          // แสดงกล่องรหัสผ่าน
+          document.getElementById('welcome-text').textContent =
+            `ยินดีต้อนรับ คุณ${data.name} (เลขสมาชิก: ${data.member_id})`;
+          document.getElementById('password-text').textContent = data.password;
+          document.getElementById('result-box').style.display = 'block';
+
+        } else {
+          msg.className   = 'error';
+          msg.textContent = data.message;
+        }
+
+      } catch (err) {
+        msg.className   = 'error';
+        msg.textContent = 'เชื่อมต่อ server ไม่ได้';
+      }
+    }
+  </script>
+
+</body>
+</html>

@@ -15,6 +15,11 @@ const CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
 
 const path = require('path');
 
+// หน้า สมัคร
+app.get('/verify', (req, res) => {
+  res.sendFile(path.join(__dirname, 'verify.html'));
+});
+
 // หน้า login
 app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'login.html'));
@@ -118,68 +123,86 @@ const db = mysql.createPool({
   ssl: { rejectUnauthorized: false }, // เพิ่มบรรทัดนี้
 });
 
-app.post('/api/register', async (req, res) => {
-  const { username, password, name } = req.body;
+const jwt = require('jsonwebtoken');
 
-  if (!username || !password || !name) {
+// ── API เช็คสมาชิกและสร้างรหัสผ่าน ─────────────────
+app.post('/api/verify-member', async (req, res) => {
+  const { member_id, national_id } = req.body;
+
+  if (!member_id || !national_id) {
     return res.status(400).json({ message: 'กรุณากรอกข้อมูลให้ครบ' });
   }
 
   try {
+    // เช็คเลขสมาชิก + เลขบัตรประชาชน
     const [rows] = await db.query(
-      'SELECT id FROM users WHERE username = ?', [username]
+      'SELECT * FROM users WHERE member_id = ? AND national_id = ?',
+      [member_id, national_id]
     );
-    if (rows.length > 0) {
-      return res.status(400).json({ message: 'username นี้ถูกใช้งานแล้ว' });
+
+    if (rows.length === 0) {
+      return res.status(401).json({ message: 'ไม่พบข้อมูลสมาชิก กรุณาตรวจสอบอีกครั้ง' });
     }
 
-    const hashed = await bcrypt.hash(password, 10);
+    // สร้างรหัสผ่านแบบสุ่ม 5 ตัว มีแค่ตัวเลข
+    const newPassword = Math.floor(10000 + Math.random() * 90000).toString();
+    const hashed = await bcrypt.hash(newPassword, 10);
+
+    // บันทึกรหัสผ่านลง database
     await db.query(
-      'INSERT INTO users (username, password, name) VALUES (?, ?, ?)',
-      [username, hashed, name]
+      'UPDATE users SET password = ? WHERE member_id = ?',
+      [hashed, member_id]
     );
 
-    res.status(201).json({ message: 'สมัครสมาชิกสำเร็จ' });
+    res.json({
+      message: 'ยืนยันตัวตนสำเร็จ',
+      name: rows[0].name,
+      member_id: rows[0].member_id,
+      password: newPassword, // ส่งรหัสผ่านจริงกลับไปให้แสดงหน้าเว็บ
+    });
 
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'เกิดข้อผิดพลาดที่ server' });
   }
 });
-const jwt = require('jsonwebtoken');
 
+// ── API Login ด้วยเลขสมาชิก + รหัสผ่าน ─────────────
 app.post('/api/login', async (req, res) => {
-  const { username, password } = req.body;
+  const { member_id, password } = req.body;
 
-  if (!username || !password) {
+  if (!member_id || !password) {
     return res.status(400).json({ message: 'กรุณากรอกข้อมูลให้ครบ' });
   }
 
   try {
-    // ── 1. หา user จาก database ───────────────────
     const [rows] = await db.query(
-      'SELECT * FROM users WHERE username = ?', [username]
+      'SELECT * FROM users WHERE member_id = ?', [member_id]
     );
+
     if (rows.length === 0) {
-      return res.status(401).json({ message: 'ไม่พบ username นี้' });
+      return res.status(401).json({ message: 'ไม่พบเลขสมาชิกนี้' });
     }
 
     const user = rows[0];
 
-    // ── 2. เทียบ password กับ hash ────────────────
+    // ยังไม่เคย activate
+    if (!user.password) {
+      return res.status(401).json({ message: 'กรุณายืนยันตัวตนก่อนเข้าสู่ระบบ' });
+    }
+
     const match = await bcrypt.compare(password, user.password);
     if (!match) {
       return res.status(401).json({ message: 'รหัสผ่านไม่ถูกต้อง' });
     }
 
-    // ── 3. ออก JWT Token ──────────────────────────
     const token = jwt.sign(
-      { id: user.id, username: user.username, name: user.name },
+      { member_id: user.member_id, name: user.name },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
 
-    res.json({ message: 'เข้าสู่ระบบสำเร็จ', token });
+    res.json({ message: 'เข้าสู่ระบบสำเร็จ', token, name: user.name });
 
   } catch (err) {
     console.error(err);
@@ -400,38 +423,41 @@ app.get('/liff-login', (req, res) => {
   res.sendFile(path.join(__dirname, 'liff-login.html'));
 });
 
-// API รับ login แล้วผูก LINE userId
+// API รับ login แล้วผูก member_id
 app.post('/api/liff-login', async (req, res) => {
-  const { username, password, lineUserId } = req.body;
+  const { member_id, password, lineUserId } = req.body;
 
-  if (!username || !password || !lineUserId) {
+  if (!member_id || !password || !lineUserId) {
     return res.status(400).json({ message: 'ข้อมูลไม่ครบ' });
   }
 
   try {
-    // เช็ค username/password
     const [rows] = await db.query(
-      'SELECT * FROM users WHERE username = ?', [username]
+      'SELECT * FROM users WHERE member_id = ?', [member_id]
     );
+
     if (rows.length === 0) {
-      return res.status(401).json({ message: 'ไม่พบ username นี้' });
+      return res.status(401).json({ message: 'ไม่พบเลขสมาชิกนี้' });
     }
 
     const user = rows[0];
+
+    if (!user.password) {
+      return res.status(401).json({ message: 'กรุณายืนยันตัวตนก่อนเข้าสู่ระบบ' });
+    }
+
     const match = await bcrypt.compare(password, user.password);
     if (!match) {
       return res.status(401).json({ message: 'รหัสผ่านไม่ถูกต้อง' });
     }
 
-    
-
-    // ผูก LINE userId กับ account
+    // ผูก LINE userId
     await db.query(
-      'UPDATE users SET line_user_id = ? WHERE id = ?',
-      [lineUserId, user.id]
+      'UPDATE users SET line_user_id = ? WHERE member_id = ?',
+      [lineUserId, member_id]
     );
 
-    res.json({ message: 'เชื่อมบัญชีสำเร็จ' });
+    res.json({ message: 'เชื่อมบัญชีสำเร็จ', name: user.name });
 
   } catch (err) {
     console.error(err);
