@@ -432,6 +432,19 @@ app.post('/api/liff-login', async (req, res) => {
   }
 
   try {
+    // ── เช็คว่า line_user_id นี้ผูกกับสมาชิกคนอื่นอยู่แล้วไหม ──
+    const [existing] = await db.query(
+      'SELECT member_id, name FROM users WHERE line_user_id = ?',
+      [lineUserId]
+    );
+
+    if (existing.length > 0 && existing[0].member_id !== member_id) {
+      return res.status(400).json({ 
+        message: `LINE นี้เชื่อมกับบัญชีสมาชิก ${existing[0].member_id} อยู่แล้ว กรุณาติดต่อเจ้าหน้าที่` 
+      });
+    }
+
+    // ── เช็ค member_id + password ──────────────────────
     const [rows] = await db.query(
       'SELECT * FROM users WHERE member_id = ?', [member_id]
     );
@@ -451,7 +464,7 @@ app.post('/api/liff-login', async (req, res) => {
       return res.status(401).json({ message: 'รหัสผ่านไม่ถูกต้อง' });
     }
 
-    // ผูก LINE userId
+    // ── ผูก LINE userId กับบัญชีสมาชิก ────────────────
     await db.query(
       'UPDATE users SET line_user_id = ? WHERE member_id = ?',
       [lineUserId, member_id]
