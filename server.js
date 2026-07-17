@@ -75,7 +75,7 @@ async function handleEvent(event) {
     const text = event.message.text.trim();
     const lineUserId = event.source.userId; // ดึง userId จาก LINE
 
-    if (text === 'บริการ') {
+    if (text === 'เมนู') {
       // เพิ่มบรรทัดนี้ เรียกใช้ฟังก์ชั้นจากบริการ
       await replyServiceMenu(event.replyToken);
 
