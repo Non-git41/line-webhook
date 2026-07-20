@@ -472,18 +472,15 @@ app.post('/api/liff-login', async (req, res) => {
 
     // ── เปลี่ยน Rich Menu เป็นอันสมาชิกทันที ──────────
     await axios.post(
-      'https://api.line.me/v2/bot/richmenu/link',
-      {
-        richMenuId: process.env.RICHMENU_MEMBER,
-        userIds: [lineUserId]
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${CHANNEL_ACCESS_TOKEN}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+  `https://api.line.me/v2/bot/user/${lineUserId}/richmenu/${process.env.RICHMENU_MEMBER}`,
+  {},
+  {
+    headers: {
+      Authorization: `Bearer ${CHANNEL_ACCESS_TOKEN}`,
+      'Content-Type': 'application/json'
+    }
+  }
+);
 
     res.json({ message: 'เชื่อมบัญชีสำเร็จ', name: user.name });
 
