@@ -267,7 +267,7 @@ async function replyLiffLink(replyToken) {
             action: {
               type: 'uri',
               label: 'เข้าสู่ระบบ',
-              uri: 'https://liff.line.me/2010712742-XW9bs8So',
+              uri: 'https://line-webhook-r2lr.onrender.com/verify',
             },
           },
         ],
