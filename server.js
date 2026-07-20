@@ -432,7 +432,7 @@ app.post('/api/liff-login', async (req, res) => {
   }
 
   try {
-    // ── เช็คว่า line_user_id นี้ผูกกับสมาชิกคนอื่นอยู่แล้วไหม ──
+    // เช็คว่า line_user_id นี้ผูกกับสมาชิกคนอื่นอยู่แล้วไหม
     const [existing] = await db.query(
       'SELECT member_id, name FROM users WHERE line_user_id = ?',
       [lineUserId]
@@ -444,7 +444,7 @@ app.post('/api/liff-login', async (req, res) => {
       });
     }
 
-    // ── เช็ค member_id + password ──────────────────────
+    // เช็ค member_id + password
     const [rows] = await db.query(
       'SELECT * FROM users WHERE member_id = ?', [member_id]
     );
@@ -464,10 +464,25 @@ app.post('/api/liff-login', async (req, res) => {
       return res.status(401).json({ message: 'รหัสผ่านไม่ถูกต้อง' });
     }
 
-    // ── ผูก LINE userId กับบัญชีสมาชิก ────────────────
+    // ผูก LINE userId กับบัญชีสมาชิก
     await db.query(
       'UPDATE users SET line_user_id = ? WHERE member_id = ?',
       [lineUserId, member_id]
+    );
+
+    // ── เปลี่ยน Rich Menu เป็นอันสมาชิกทันที ──────────
+    await axios.post(
+      'https://api.line.me/v2/bot/richmenu/link',
+      {
+        richMenuId: process.env.RICHMENU_MEMBER,
+        userIds: [lineUserId]
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${CHANNEL_ACCESS_TOKEN}`,
+          'Content-Type': 'application/json'
+        }
+      }
     );
 
     res.json({ message: 'เชื่อมบัญชีสำเร็จ', name: user.name });
@@ -476,24 +491,4 @@ app.post('/api/liff-login', async (req, res) => {
     console.error(err);
     res.status(500).json({ message: 'เกิดข้อผิดพลาดที่ server' });
   }
-    // ใน API /api/liff-login ตอนเชื่อมบัญชีสำเร็จ
-  await db.query(
-    'UPDATE users SET line_user_id = ? WHERE member_id = ?',
-    [lineUserId, member_id]
-  );
-
-  // เปลี่ยน Rich Menu เป็นอันสมาชิก
-  await axios.post(
-    `https://api.line.me/v2/bot/richmenu/link`,
-    {
-      richMenuId: process.env.RICHMENU_MEMBER,
-      userIds: [lineUserId]
-    },
-    { headers: {
-      Authorization: `Bearer ${CHANNEL_ACCESS_TOKEN}`,
-      'Content-Type': 'application/json'
-    }}
-  );
-
-  res.json({ message: 'เชื่อมบัญชีสำเร็จ', name: user.name }); 
 });
