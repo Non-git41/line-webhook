@@ -476,4 +476,24 @@ app.post('/api/liff-login', async (req, res) => {
     console.error(err);
     res.status(500).json({ message: 'เกิดข้อผิดพลาดที่ server' });
   }
+    // ใน API /api/liff-login ตอนเชื่อมบัญชีสำเร็จ
+  await db.query(
+    'UPDATE users SET line_user_id = ? WHERE member_id = ?',
+    [lineUserId, member_id]
+  );
+
+  // เปลี่ยน Rich Menu เป็นอันสมาชิก
+  await axios.post(
+    `https://api.line.me/v2/bot/richmenu/link`,
+    {
+      richMenuId: process.env.RICHMENU_MEMBER,
+      userIds: [lineUserId]
+    },
+    { headers: {
+      Authorization: `Bearer ${CHANNEL_ACCESS_TOKEN}`,
+      'Content-Type': 'application/json'
+    }}
+  );
+
+  res.json({ message: 'เชื่อมบัญชีสำเร็จ', name: user.name }); 
 });
