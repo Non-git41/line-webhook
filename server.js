@@ -489,3 +489,21 @@ app.post('/api/liff-login', async (req, res) => {
     res.status(500).json({ message: 'เกิดข้อผิดพลาดที่ server' });
   }
 });
+  app.get('/reset-richmenu', async (req, res) => {
+  const lineUserId = req.query.userId;
+  try {
+    await axios.post(
+      `https://api.line.me/v2/bot/user/${lineUserId}/richmenu/${process.env.RICHMENU_GENERAL}`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${CHANNEL_ACCESS_TOKEN}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    res.send('รีเซ็ต Rich Menu สำเร็จ');
+  } catch (err) {
+    res.send('Error: ' + JSON.stringify(err.response?.data));
+  }
+});
