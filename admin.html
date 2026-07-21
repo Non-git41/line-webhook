@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Sarabun', sans-serif; background: #f0f2f5; padding: 20px; }
+
+    .header {
+      background: #105abe; color: white;
+      padding: 16px 24px; border-radius: 12px;
+      margin-bottom: 20px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .header h1 { font-size: 18px; font-weight: 500; }
+    .header span { font-size: 13px; opacity: 0.8; }
+
+    .card {
+      background: white; border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      padding: 20px; margin-bottom: 16px;
+    }
+    .card h2 { font-size: 15px; font-weight: 500; color: #333; margin-bottom: 16px; }
+
+    .btn {
+      padding: 8px 20px; border-radius: 8px; border: none;
+      cursor: pointer; font-family: 'Sarabun', sans-serif;
+      font-size: 14px; font-weight: 500;
+    }
+    .btn-primary { background: #105abe; color: white; }
+    .btn-primary:hover { background: #0d47a1; }
+    .btn-danger { background: #d71678; color: white; }
+    .btn-danger:hover { background: #b01060; }
+    .btn-sm { padding: 5px 12px; font-size: 13px; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th {
+      background: #f5f5f5; padding: 10px 12px;
+      text-align: left; border-bottom: 1px solid #ddd;
+      font-weight: 500; color: #555;
+    }
+    td { padding: 10px 12px; border-bottom: 1px solid #eee; }
+    tr:hover td { background: #fafafa; }
+
+    .badge {
+      display: inline-block; padding: 2px 8px;
+      border-radius: 10px; font-size: 11px;
+    }
+    .badge-linked { background: #e8f5e9; color: #2e7d32; }
+    .badge-null   { background: #f5f5f5; color: #999; }
+
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      padding: 12px 20px; border-radius: 8px;
+      font-size: 14px; display: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .toast.success { background: #2e7d32; color: white; }
+    .toast.error   { background: #c62828; color: white; }
+
+    .stat-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+      margin-bottom: 16px;
+    }
+    .stat-card {
+      background: #f9f9f9; border-radius: 8px;
+      padding: 14px 16px; text-align: center;
+    }
+    .stat-card .num { font-size: 24px; font-weight: 500; color: #105abe; }
+    .stat-card .label { font-size: 12px; color: #888; margin-top: 4px; }
+
+    .search-box {
+      width: 100%; padding: 8px 12px;
+      border: 1px solid #ddd; border-radius: 8px;
+      font-size: 14px; margin-bottom: 12px;
+      font-family: 'Sarabun', sans-serif;
+    }
+    .search-box:focus { outline: none; border-color: #105abe; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>⚙️ Admin Panel — สหกรณ์ออมทรัพย์</h1>
+    <span id="last-update">-</span>
+  </div>
+
+  <!-- สถิติ -->
+  <div class="card">
+    <h2>สถิติภาพรวม</h2>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="num" id="stat-total">-</div>
+        <div class="label">สมาชิกทั้งหมด</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="stat-linked">-</div>
+        <div class="label">เชื่อม LINE แล้ว</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="stat-cache">-</div>
+        <div class="label">อยู่ใน cache</div>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:8px;">
+      <button class="btn btn-primary" onclick="clearAllCache()">
+        🔄 ล้าง cache ทุกคน
+      </button>
+      <button class="btn btn-primary" onclick="loadMembers()">
+        ↻ รีเฟรชข้อมูล
+      </button>
+    </div>
+  </div>
+
+  <!-- ตารางสมาชิก -->
+  <div class="card">
+    <h2>รายชื่อสมาชิก</h2>
+    <input type="text" class="search-box" placeholder="ค้นหาชื่อหรือเลขสมาชิก..."
+      oninput="filterTable(this.value)">
+
+    <table id="member-table">
+      <thead>
+        <tr>
+          <th>เลขสมาชิก</th>
+          <th>ชื่อ</th>
+          <th>LINE</th>
+          <th>Rich Menu</th>
+          <th>อัปเดต cache</th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+        <tr><td colspan="5" style="text-align:center;color:#999;padding:20px">กำลังโหลด...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    let allMembers = [];
+
+    async function loadMembers() {
+      try {
+        const res = await fetch('/api/admin/members');
+        allMembers = await res.json();
+        renderTable(allMembers);
+        updateStats(allMembers);
+        document.getElementById('last-update').textContent =
+          'อัปเดตล่าสุด: ' + new Date().toLocaleTimeString('th-TH');
+      } catch (err) {
+        showToast('โหลดข้อมูลไม่ได้', 'error');
+      }
+    }
+
+    function renderTable(members) {
+      const tbody = document.getElementById('tbody');
+      if (members.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;padding:20px">ไม่มีข้อมูล</td></tr>';
+        return;
+      }
+      tbody.innerHTML = members.map(m => `
+        <tr>
+          <td>${m.member_id}</td>
+          <td>${m.name}</td>
+          <td>${m.line_user_id
+            ? `<span class="badge badge-linked">เชื่อมแล้ว</span>`
+            : `<span class="badge badge-null">ยังไม่เชื่อม</span>`}
+          </td>
+          <td style="display:flex;gap:6px;">
+            <button class="btn btn-sm btn-primary"
+              onclick="setRichMenu('${m.line_user_id}', 'general', '${m.name}')"
+              ${!m.line_user_id ? 'disabled' : ''}>ทั่วไป</button>
+            <button class="btn btn-sm btn-danger"
+              onclick="setRichMenu('${m.line_user_id}', 'member', '${m.name}')"
+              ${!m.line_user_id ? 'disabled' : ''}>สมาชิก</button>
+          </td>
+          <td>
+            <button class="btn btn-sm btn-primary"
+              onclick="clearUserCache('${m.line_user_id}', '${m.name}')"
+              ${!m.line_user_id ? 'disabled' : ''}>อัปเดต</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function updateStats(members) {
+      document.getElementById('stat-total').textContent = members.length;
+      document.getElementById('stat-linked').textContent =
+        members.filter(m => m.line_user_id).length;
+    }
+
+    function filterTable(q) {
+      const filtered = allMembers.filter(m =>
+        m.name.includes(q) || m.member_id.includes(q)
+      );
+      renderTable(filtered);
+    }
+
+    async function clearAllCache() {
+      try {
+        const res = await fetch('/admin/clear-cache');
+        const text = await res.text();
+        showToast(text, 'success');
+        document.getElementById('stat-cache').textContent = '0';
+      } catch (err) {
+        showToast('เกิดข้อผิดพลาด', 'error');
+      }
+    }
+
+    async function clearUserCache(lineUserId, name) {
+      if (!lineUserId) return;
+      try {
+        const res = await fetch('/api/admin/clear-cache-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lineUserId })
+        });
+        const data = await res.json();
+        showToast(`อัปเดต cache ของ ${name} สำเร็จ ✅`, 'success');
+      } catch (err) {
+        showToast('เกิดข้อผิดพลาด', 'error');
+      }
+    }
+
+    async function setRichMenu(lineUserId, type, name) {
+      if (!lineUserId) return;
+      try {
+        await fetch('/api/admin/reset-richmenu', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lineUserId, type })
+        });
+        showToast(`เปลี่ยน Rich Menu ของ ${name} สำเร็จ ✅`, 'success');
+      } catch (err) {
+        showToast('เกิดข้อผิดพลาด', 'error');
+      }
+    }
+
+    function showToast(msg, type) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.className = `toast ${type}`;
+      toast.style.display = 'block';
+      setTimeout(() => toast.style.display = 'none', 3000);
+    }
+
+    loadMembers();
+  </script>
+
+</body>
+</html>

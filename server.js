@@ -507,3 +507,14 @@ app.post('/api/liff-login', async (req, res) => {
     res.send('Error: ' + JSON.stringify(err.response?.data));
   }
 });
+// หน้า Admin
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
+// ล้าง cache คนเดียว
+app.post('/api/admin/clear-cache-user', (req, res) => {
+  const { lineUserId } = req.body;
+  delete userCache[lineUserId];
+  res.json({ message: 'ล้าง cache สำเร็จ' });
+});
