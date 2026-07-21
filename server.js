@@ -518,3 +518,13 @@ app.post('/api/admin/clear-cache-user', (req, res) => {
   delete userCache[lineUserId];
   res.json({ message: 'ล้าง cache สำเร็จ' });
 });
+app.get('/api/admin/members', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      'SELECT member_id, name, line_user_id FROM users ORDER BY member_id'
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ message: 'เกิดข้อผิดพลาด' });
+  }
+});
