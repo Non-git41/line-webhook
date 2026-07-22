@@ -307,21 +307,26 @@ async function replyLiffLink(replyToken) {
   );
 }
 
-// ── ดึงข้อมูลสมาชิกแสดงเป็น Flex Message ───────────
 async function replyUserInfo(replyToken, lineUserId) {
   try {
-    // หา user จาก line_user_id
-    const [rows] = await db.query(
-      'SELECT * FROM users WHERE line_user_id = ?', [lineUserId]
-    );
+    // ── เช็ค cache ก่อน ───────────────────────────────
+    let user = getCache(lineUserId);
 
-    // ยังไม่ได้เชื่อมบัญชี
-    if (rows.length === 0) {
-      await replyMessage(replyToken,
-        'ยังไม่ได้เชื่อมบัญชีครับ\nพิมพ์ "เชื่อมบัญชี" เพื่อผูกบัญชีสหกรณ์ก่อน'
+    if (user) {
+      console.log('ใช้ข้อมูลจาก cache');
+    } else {
+      console.log('ดึงข้อมูลจาก database');
+      const [rows] = await db.query(
+        'SELECT * FROM users WHERE line_user_id = ?', [lineUserId]
       );
-      return;
+      if (rows.length === 0) {
+        await replyMessage(replyToken, 'ยังไม่ได้เชื่อมบัญชีครับ');
+        return;
+      }
+      user = rows[0];
+      setCache(lineUserId, user); // บันทึกลง cache
     }
+    // โค้ด Flex Message ต่อไป...
 
     const user = rows[0];
 
@@ -436,11 +441,6 @@ app.get('/', (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-});
-
-// หน้า LIFF Login
-app.get('/liff-login', (req, res) => {
-  res.sendFile(path.join(__dirname, 'liff-login.html'));
 });
 
 // API รับ login แล้วผูก member_id
