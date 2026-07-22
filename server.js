@@ -333,7 +333,6 @@ async function replyUserInfo(replyToken, lineUserId) {
       setCache(lineUserId, user); // บันทึกลง cache
     }
 
-    const user = rows[0];
 
     // สร้าง Flex Message แบบ Receipt
     const flex = {
