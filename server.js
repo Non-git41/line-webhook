@@ -187,7 +187,7 @@ app.post('/api/verify-member', async (req, res) => {
   }
 });
 
-// ── API  ด้วยเลขสมาชิก + รหัสผ่าน ─────────────
+// ── API Login ด้วยเลขสมาชิก + รหัสผ่าน ─────────────
 app.post('/api/login', async (req, res) => {
   const { member_id, password } = req.body;
 
@@ -287,7 +287,7 @@ async function replyLiffLink(replyToken) {
             action: {
               type: 'uri',
               label: 'เข้าสู่ระบบ',
-              uri: 'https://line-webhook-r2lr.onrender.com',
+              uri: 'https://line-webhook-r2lr.onrender.com/liff-login',
             },
           },
         ],
