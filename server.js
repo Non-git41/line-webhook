@@ -25,6 +25,11 @@ app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'login.html'));
 });
 
+// หน้า LIFF Login (ใช้ login.html เดียวกัน)
+app.get('/liff-login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'login.html'));
+});
+
 // หน้า dashboard (ตัวอย่าง)
 app.get('/dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'dashboard.html'));
