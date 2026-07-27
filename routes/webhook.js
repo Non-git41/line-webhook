@@ -1,0 +1,93 @@
+const express = require('express');
+const router = express.Router();
+
+const db = require('../config/db');
+const { reply, replyText } = require('../config/line');
+const { verifySignature } = require('../middlewares/auth');
+const { getCache, setCache } = require('../services/cache');
+
+const { serviceMenuFlex } = require('../messages/serviceMenu');
+const { liffLinkFlex }    = require('../messages/liffLink');
+const { userInfoFlex }    = require('../messages/userInfo');
+
+router.post('/webhook', verifySignature, async (req, res) => {
+  res.status(200).send('OK'); // ตอบ 200 ก่อนเสมอ กัน LINE retry
+
+  const events = req.body.events;
+  if (!events || events.length === 0) return;
+
+  for (const event of events) {
+    try {
+      await handleEvent(event);
+    } catch (err) {
+      console.error('Webhook error:', err.message);
+    }
+  }
+});
+
+async function handleEvent(event) {
+  const lineUserId = event.source.userId;
+
+  // ผู้ใช้เพิ่มเพื่อน
+  if (event.type === 'follow') {
+    await replyText(
+      event.replyToken,
+      'ยินดีต้อนรับครับ 🙏\nพิมพ์ "เชื่อมบัญชี" เพื่อผูกบัญชีสหกรณ์กับ LINE'
+    );
+    return;
+  }
+
+  // ผู้ใช้ส่งข้อความ
+  if (event.type === 'message' && event.message.type === 'text') {
+    const text = event.message.text.trim();
+
+    switch (text) {
+      case 'เมนู':
+        await reply(event.replyToken, [serviceMenuFlex()]);
+        break;
+
+      case 'เชื่อมบัญชี':
+        await reply(event.replyToken, [liffLinkFlex()]);
+        break;
+
+      case 'ข้อมูลของฉัน':
+      case 'บัตรสมาชิก':
+        await sendUserInfo(event.replyToken, lineUserId);
+        break;
+
+      default:
+        await replyText(event.replyToken, 'พิมพ์ "เมนู" เพื่อดูบริการของสหกรณ์ครับ');
+    }
+  }
+}
+
+// ดึงข้อมูลสมาชิก โดยใช้ cache ก่อน ถ้าไม่มีค่อย query database
+async function sendUserInfo(replyToken, lineUserId) {
+  let user = getCache(lineUserId);
+
+  if (user) {
+    console.log('ใช้ข้อมูลจาก cache');
+  } else {
+    console.log('ดึงข้อมูลจาก database');
+
+    const [rows] = await db.query(
+      'SELECT * FROM users WHERE line_user_id = ?',
+      [lineUserId]
+    );
+
+    if (rows.length === 0) {
+      await replyText(
+        replyToken,
+        'ยังไม่ได้เชื่อมบัญชีครับ\nพิมพ์ "เชื่อมบัญชี" เพื่อผูกบัญชีสหกรณ์ก่อน'
+      );
+      return;
+    }
+
+    user = rows[0];
+    setCache(lineUserId, user);
+  }
+
+  await reply(replyToken, [userInfoFlex(user)]);
+}
+
+module.exports = router;
