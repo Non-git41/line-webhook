@@ -61,21 +61,21 @@ async function handleEvent(event) {
   }
 }
 
-// ดึงข้อมูลสมาชิก โดยใช้ cache ก่อน ถ้าไม่มีค่อย query database
+// ดึงข้อมูลสมาชิก + เงินฝาก + เงินกู้ (ใช้ cache ก่อน ถ้าไม่มีค่อย query)
 async function sendUserInfo(replyToken, lineUserId) {
-  let user = getCache(lineUserId);
+  let data = getCache(lineUserId);
 
-  if (user) {
+  if (data) {
     console.log('ใช้ข้อมูลจาก cache');
   } else {
     console.log('ดึงข้อมูลจาก database');
 
-    const [rows] = await db.query(
+    const [userRows] = await db.query(
       'SELECT * FROM users WHERE line_user_id = ?',
       [lineUserId]
     );
 
-    if (rows.length === 0) {
+    if (userRows.length === 0) {
       await replyText(
         replyToken,
         'ยังไม่ได้เชื่อมบัญชีครับ\nพิมพ์ "เชื่อมบัญชี" เพื่อผูกบัญชีสหกรณ์ก่อน'
@@ -83,11 +83,27 @@ async function sendUserInfo(replyToken, lineUserId) {
       return;
     }
 
-    user = rows[0];
-    setCache(lineUserId, user);
+    const user = userRows[0];
+
+    // ดึงเงินฝากและเงินกู้พร้อมกัน
+    const [savingRows] = await db.query(
+      'SELECT * FROM savings WHERE member_id = ? LIMIT 1',
+      [user.member_id]
+    );
+    const [loanRows] = await db.query(
+      'SELECT * FROM loans WHERE member_id = ? LIMIT 1',
+      [user.member_id]
+    );
+
+    data = {
+      user,
+      saving: savingRows[0] || null,
+      loan: loanRows[0] || null,
+    };
+    setCache(lineUserId, data);
   }
 
-  await reply(replyToken, [userInfoFlex(user)]);
+  await reply(replyToken, [userInfoFlex(data.user, data.saving, data.loan)]);
 }
 
 module.exports = router;
