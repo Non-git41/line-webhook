@@ -12,6 +12,7 @@ router.get('/liff-login', page('login.html'));       // หน้า login ผ�
 router.get('/dashboard',  page('dashboard.html'));   // หน้า dashboard
 router.get('/admin',      page('admin.html'));       // หน้า admin
 
-router.get('/', (req, res) => res.send('LINE Webhook server is running'));
+// route สำหรับ cron-job.org ปลุก server โดยเฉพาะ ตอบสั้นที่สุด
+router.get('/ping', (req, res) => res.send('OK'));
 
 module.exports = router;
