@@ -76,8 +76,8 @@ function userInfoFlex(user, saving, loan) {
 
   // ── ส่วนเงินกู้ (แสดงเฉพาะถ้ามีข้อมูล) ──
   if (loan) {
-    const dueText = loan.due_date
-      ? new Date(loan.due_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })
+    const paymentday = loan.payment_day  
+      ? new Date(loan.payment_day).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })
       : '-';
     body.push(
       { type: 'separator', margin: 'lg' },
@@ -98,7 +98,7 @@ function userInfoFlex(user, saving, loan) {
           row('เลขสัญญา', loan.loan_no),
           row('ยอดคงเหลือ', money(loan.remaining), '#c0392b', true),
           row('ค่างวด/เดือน', money(loan.monthly_payment)),
-          row('ครบกำหนดงวดถัดไป', dueText),
+          row('ครบกำหนดงวดถัดไป', paymentday),
         ],
       }
     );
