@@ -85,7 +85,7 @@
     <table>
       <thead>
         <tr>
-          <th>เลขสมาชิก</th><th>ชื่อ</th><th>LINE</th><th>Rich Menu</th><th>อัปเดต cache</th>
+          <th>เลขสมาชิก</th><th>ชื่อ</th><th>LINE</th><th>Rich Menu</th><th>อัปเดต cache</th><th>แจ้งเตือนเงินกู้</th>
         </tr>
       </thead>
       <tbody id="tbody">
@@ -144,7 +144,10 @@
           <td>
             <button class="btn btn-sm btn-primary" ${off}
               onclick="clearUserCache('${uid}','${m.name}')">อัปเดต</button>
+            <button class="btn btn-sm btn-warning" ${off} 
+              onclick="sendLoanReminder('${m.member_id}','${m.name}')">แจ้งเตือน</button>
           </td>
+          
         </tr>`;
       }).join('');
     }
@@ -190,6 +193,14 @@
       toast.style.display = 'block';
       setTimeout(() => toast.style.display = 'none', 3000);
     }
+    // กดปุ่มแล้วส่งแจ้งเตือนเงินกู้ให้สมาชิกคนนั้นทันที
+async function sendLoanReminder(memberId, name) {
+  // ถามยืนยันก่อน กันกดพลาดแล้วข้อความไปถึงสมาชิกจริง
+  if (!confirm(`ส่งแจ้งเตือนชำระเงินกู้ให้ ${name} ใช่ไหม?`)) return;
+
+  const { ok, data } = await post('/api/admin/send-loan-reminder', { memberId });
+  showToast(ok ? `ส่งแจ้งเตือนให้ ${name} สำเร็จ` : data.message, ok ? 'success' : 'error');
+}
 
     loadMembers();
   </script>
