@@ -65,7 +65,7 @@
     <h1>Admin Panel — สหกรณ์ออมทรัพย์</h1>
     <span id="last-update">-</span>
   </div>
-
+  
   <div class="card">
     <h2>สถิติภาพรวม</h2>
     <div class="stat-grid">
@@ -76,6 +76,7 @@
     <div style="display:flex; gap:8px;">
       <button class="btn btn-primary" onclick="clearAllCache()">ล้าง cache ทุกคน</button>
       <button class="btn btn-primary" onclick="loadMembers()">รีเฟรชข้อมูล</button>
+      <button class="btn btn-danger" onclick="sendPromoAll()">ส่งประกาศถึงทุกคน</button>
     </div>
   </div>
 
@@ -200,6 +201,14 @@ async function sendLoanReminder(memberId, name) {
 
   const { ok, data } = await post('/api/admin/send-loan-reminder', { memberId });
   showToast(ok ? `ส่งแจ้งเตือนให้ ${name} สำเร็จ` : data.message, ok ? 'success' : 'error');
+}
+// กดปุ่มแล้วส่งประกาศหาเพื่อนทุกคนของ OA
+async function sendPromoAll() {
+  // ถามยืนยัน 2 ชั้น เพราะส่งแล้วยกเลิกไม่ได้และนับโควตาตามจำนวนเพื่อนทั้งหมด
+  if (!confirm('ส่งประกาศให้เพื่อนทุกคนของ OA ใช่ไหม? (ส่งแล้วยกเลิกไม่ได้)')) return;
+
+  const { ok, data } = await post('/api/admin/send-promo-all');
+  showToast(data.message, ok ? 'success' : 'error');
 }
 
     loadMembers();
