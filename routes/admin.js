@@ -5,8 +5,9 @@ const router = express.Router();
 const db = require('../config/db');
 const { linkRichMenu } = require('../config/line');
 const { clearCache, clearAllCache, cacheSize } = require('../services/cache');
-const { checkLoanReminders } = require('../services/scheduler');
-
+const { checkLoanReminders, sendLoanReminderNow } = require('../services/scheduler');
+const { broadcast } = require('../config/line');
+const { promoImagemap } = require('../messages/promoImagemap');
 // ดึงรายชื่อสมาชิกทั้งหมด พร้อมสถานะว่าเชื่อม LINE แล้วหรือยัง
 router.get('/members', async (req, res) => {
   try {
@@ -63,4 +64,33 @@ router.get('/test-loan-reminder', async (req, res) => {
   res.send('รันเช็คแจ้งเตือนเงินกู้เรียบร้อย ดู log ใน Render');
 });
 
+// ส่งแจ้งเตือนเงินกู้ให้สมาชิก 1 คนทันที (เรียกจากปุ่มในหน้า Admin)
+router.post('/send-loan-reminder', async (req, res) => {
+  const { memberId } = req.body;
+  if (!memberId) return res.status(400).json({ message: 'ไม่พบเลขสมาชิก' });
+
+  try {
+    const result = await sendLoanReminderNow(memberId);
+    // ส่งไม่ได้ด้วยเหตุผลที่คาดไว้ เช่น ยังไม่เชื่อม LINE
+    if (!result.ok) return res.status(400).json({ message: result.message });
+
+    res.json({ message: 'ส่งแจ้งเตือนสำเร็จ' });
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+    res.status(500).json({ message: 'ส่งแจ้งเตือนไม่สำเร็จ' });
+  }
+
+  // ส่งประกาศโปรโมชั่นหาเพื่อนทุกคนของ OA ไม่ว่าจะเชื่อมบัญชีสมาชิกแล้วหรือยัง
+router.post('/send-promo-all', async (req, res) => {
+  try {
+    // broadcast ไม่ต้องระบุรายชื่อ LINE ส่งให้เพื่อนทุกคนเอง
+    await broadcast([promoImagemap()]);
+
+    res.json({ message: 'ส่งประกาศให้เพื่อนทุกคนของ OA สำเร็จ' });
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+    res.status(500).json({ message: 'ส่งประกาศไม่สำเร็จ' });
+  }
+});
+});
 module.exports = router;
