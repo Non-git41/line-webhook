@@ -21,4 +21,18 @@ router.get('/imagemap/promo/:size', (req, res) => {
   res.type('png').sendFile(path.join(__dirname, '..', 'imagemap', 'promo.png'));
 });
 
+// เสิร์ฟรูป Imagemap ให้ LINE ดึงไปแสดง
+router.get('/imagemap/promo/:size', (req, res) => {
+  // เก็บ path เต็มของไฟล์ไว้ log ถ้าหาไม่เจอ จะได้เห็นว่าเซิร์ฟเวอร์หาที่ไหน
+  const file = path.join(__dirname, '..', 'promo.png');
+
+  // ใส่ callback เพื่อดักตอนส่งไฟล์ไม่สำเร็จ แทนที่จะปล่อยให้ขึ้น Not Found เฉยๆ
+  res.type('png').sendFile(file, (err) => {
+    if (err) {
+      console.error('[imagemap] ส่งรูปไม่สำเร็จ, path ที่หา:', file);
+      res.status(404).send('ไม่พบไฟล์รูป promo.png ที่ root ของโปรเจกต์');
+    }
+  });
+});
+
 module.exports = router;
