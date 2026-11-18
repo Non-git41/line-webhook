@@ -34,6 +34,15 @@ async function push(lineUserId, messages) {
   );
 }
 
+// ส่งข้อความหาเพื่อนทุกคนของ OA (รวมคนที่ยังไม่ได้เชื่อมบัญชีสมาชิก)
+async function broadcast(messages) {
+  await axios.post(
+    'https://api.line.me/v2/bot/message/broadcast',
+    { messages }, // ใส่ได้สูงสุด 5 ข้อความต่อครั้ง
+    { headers }
+  );
+}
+
 // ส่งข้อความธรรมดาแบบ push (ทางลัด เรียกใช้บ่อย)
 async function pushText(lineUserId, text) {
   await push(lineUserId, [{ type: 'text', text }]);
@@ -58,4 +67,5 @@ module.exports = {
   push,
   pushText,
   linkRichMenu,
+  broadcast,
 };
