@@ -86,11 +86,11 @@
     <table>
       <thead>
         <tr>
-          <th>เลขสมาชิก</th><th>ชื่อ</th><th>LINE</th><th>Rich Menu</th><th>อัปเดต cache</th><th>แจ้งเตือนเงินกู้</th>
+          <th>เลขสมาชิก</th><th>ชื่อ</th><th>LINE</th><th>Rich Menu</th><th>อัปเดต cache</th><th>ส่งประกาศ</th>
         </tr>
       </thead>
       <tbody id="tbody">
-        <tr><td colspan="5" style="text-align:center;color:#999;padding:20px">กำลังโหลด...</td></tr>
+        <tr><td colspan="6" style="text-align:center;color:#999;padding:20px">กำลังโหลด...</td></tr>
       </tbody>
     </table>
   </div>
@@ -123,7 +123,7 @@
     function renderTable(members) {
       const tbody = document.getElementById('tbody');
       if (members.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;padding:20px">ไม่มีข้อมูล</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;padding:20px">ไม่มีข้อมูล</td></tr>';
         return;
       }
       tbody.innerHTML = members.map(m => {
@@ -147,6 +147,10 @@
               onclick="clearUserCache('${uid}','${m.name}')">อัปเดต</button>
             <button class="btn btn-sm btn-warning" ${off} 
               onclick="sendLoanReminder('${m.member_id}','${m.name}')">แจ้งเตือน</button>
+          </td>
+          <td>
+            <button class="btn btn-sm btn-danger" ${off}
+              onclick="sendPromoUser('${uid}','${m.name}')">ส่งประกาศ</button>
           </td>
           
         </tr>`;
@@ -209,6 +213,14 @@ async function sendPromoAll() {
 
   const { ok, data } = await post('/api/admin/send-promo-all');
   showToast(data.message, ok ? 'success' : 'error');
+}
+// กดปุ่มแล้วส่งประกาศโปรโมชั่นให้สมาชิกคนนั้นคนเดียว
+async function sendPromoUser(lineUserId, name) {
+  // ถามยืนยันก่อน กันกดพลาดแล้วข้อความไปถึงสมาชิกจริง
+  if (!confirm(`ส่งประกาศให้ ${name} ใช่ไหม?`)) return;
+
+  const { ok, data } = await post('/api/admin/send-promo-user', { lineUserId });
+  showToast(ok ? `ส่งประกาศให้ ${name} สำเร็จ` : data.message, ok ? 'success' : 'error');
 }
 
     loadMembers();
