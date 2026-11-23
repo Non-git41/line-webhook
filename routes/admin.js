@@ -7,6 +7,7 @@ const { linkRichMenu } = require('../config/line');
 const { clearCache, clearAllCache, cacheSize } = require('../services/cache');
 const { checkLoanReminders, sendLoanReminderNow } = require('../services/scheduler');
 const { broadcast } = require('../config/line');
+const { push } = require('../config/line');
 const { promoImagemap } = require('../messages/promoImagemap');
 // ดึงรายชื่อสมาชิกทั้งหมด พร้อมสถานะว่าเชื่อม LINE แล้วหรือยัง
 router.get('/members', async (req, res) => {
@@ -92,5 +93,21 @@ router.post('/send-promo-all', async (req, res) => {
     res.status(500).json({ message: 'ส่งประกาศไม่สำเร็จ' });
   }
 });
+});
+  // ส่งประกาศโปรโมชั่นให้สมาชิก 1 คน (เรียกจากปุ่ม "ส่งประกาศ" ในแถวสมาชิก)
+router.post('/send-promo-user', async (req, res) => {
+  const { lineUserId } = req.body;
+
+  // ไม่มี LINE User ID แปลว่าสมาชิกยังไม่เชื่อม LINE ส่งไม่ได้
+  if (!lineUserId) return res.status(400).json({ message: 'ไม่พบ LINE User ID' });
+
+  try {
+    // ส่งข้อความ Imagemap หา user คนเดียวแบบ push
+    await push(lineUserId, [promoImagemap()]);
+    res.json({ message: 'ส่งประกาศสำเร็จ' });
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+    res.status(500).json({ message: 'ส่งประกาศไม่สำเร็จ' });
+  }
 });
 module.exports = router;
