@@ -22,7 +22,7 @@ router.get('/imagemap/promo/:size', (req, res) => {
 });
 
 // เสิร์ฟรูป Imagemap ให้ LINE ดึงไปแสดง
-router.get('/imagemap/promo/:size', (req, res) => {
+router.get('/imagemap/promo1/:size', (req, res) => {
   // เก็บ path เต็มของไฟล์ไว้ log ถ้าหาไม่เจอ จะได้เห็นว่าเซิร์ฟเวอร์หาที่ไหน
   const file = path.join(__dirname, '..', 'promo.png');
 
