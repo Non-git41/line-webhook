@@ -4,7 +4,7 @@ function promoImagemap() {
   return {
     type: 'imagemap',
     // LINE จะเรียกรูปจาก baseUrl + /1040, /700, /460 ... ตามขนาดหน้าจอ
-    baseUrl: 'https://line-webhook-r2lr.onrender.com/imagemap/promo',
+    baseUrl: 'https://line-webhook-r2lr.onrender.com/imagemap/promo1',
     // ข้อความที่แสดงในรายการแชทและแจ้งเตือน (ก่อนเปิดดูรูป)
     altText: '📢 โปรโมชั่นสหกรณ์ 📢',
     // ขนาดอ้างอิงของรูป ใช้กำหนดพิกัดพื้นที่กด (ไม่ใช่ขนาดจริง)
