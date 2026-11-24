@@ -96,6 +96,55 @@ async function checkLoanReminders() {
   }
 }
 
+// คำนวณวันครบกำหนด "ครั้งถัดไป" จาก payment_day
+// ถ้าเดือนนี้เลยวันที่กำหนดมาแล้ว ให้เลื่อนไปเดือนหน้าแทน (กันแสดงวันที่ในอดีต)
+function getNextDueDate(paymentDay) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // ตัดเวลาออก เทียบเฉพาะวัน
+
+  // ลองเดือนนี้ก่อน (i = 0) ถ้าเลยแล้วค่อยลองเดือนหน้า (i = 1)
+  for (let i = 0; i < 2; i++) {
+    const year = today.getFullYear();
+    const month = today.getMonth() + i; // JS เลื่อนข้ามปีให้เองถ้าเกิน 11
+    const lastDay = new Date(year, month + 1, 0).getDate(); // จำนวนวันของเดือนนั้น
+    const due = new Date(year, month, Math.min(paymentDay, lastDay)); // กันวันที่ 31 ในเดือนที่ไม่มี
+    if (due >= today) return due; // ยังไม่เลยกำหนด ใช้วันนี้ได้
+  }
+}
+
+// ส่งแจ้งเตือนเงินกู้ให้สมาชิก 1 คนทันที (ใช้กับปุ่มในหน้า Admin)
+// ไม่เช็คเงื่อนไข "เหลือ 3 วัน" และไม่แตะ last_notified_date
+async function sendLoanReminderNow(memberId) {
+  // ดึงเงินกู้ + ชื่อ + line_user_id ของสมาชิกคนนี้
+  const [loans] = await db.query(
+    `SELECT loans.*, users.name, users.line_user_id
+     FROM loans
+     JOIN users ON loans.member_id = users.member_id
+     WHERE loans.member_id = ?`,
+    [memberId]
+  );
+
+  // ไม่มีข้อมูลเงินกู้ → แจ้งกลับ ไม่ส่ง
+  if (loans.length === 0) return { ok: false, message: 'ไม่พบข้อมูลเงินกู้ของสมาชิกนี้' };
+
+  const loan = loans[0];
+
+  // ยังไม่เชื่อม LINE → ไม่มีที่ให้ส่ง
+  if (!loan.line_user_id) return { ok: false, message: 'สมาชิกยังไม่ได้เชื่อม LINE' };
+
+  // สร้าง Flex แจ้งเตือน โดยใส่วันครบกำหนดที่คำนวณจาก payment_day
+  const flex = loanReminderFlex(loan.name, {
+    ...loan,
+    due_date: getNextDueDate(loan.payment_day),
+  });
+
+  // ส่งแบบ push ไปหา user โดยตรง
+  await push(loan.line_user_id, [flex]);
+  return { ok: true };
+}
+
+// แก้บรรทัดท้ายไฟล์เป็น
+module.exports = { startScheduler, checkLoanReminders, sendLoanReminderNow };
 // ตั้งเวลาให้รันทุกวัน เวลา 09:00 น. (เวลาไทย)
 function startScheduler() {
   cron.schedule(
@@ -110,4 +159,4 @@ function startScheduler() {
 }
 
 // ส่งออกทั้งฟังก์ชันเริ่ม scheduler และฟังก์ชันเช็ค (เผื่อเรียกทดสอบเองผ่าน route)
-module.exports = { startScheduler, checkLoanReminders };
+module.exports = { startScheduler, checkLoanReminders, sendLoanReminderNow };
